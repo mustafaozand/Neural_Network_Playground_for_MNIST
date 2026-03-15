@@ -1,0 +1,14 @@
+matplotlib==3.10.8
+numpy==2.4.2
+pillow==12.1.1
+pyinstaller==6.19.0
+PyQt6==6.10.2
+PyQt6-Qt6==6.10.2
+PyQt6_sip==13.11.0
+tensorboard==2.20.0
+tensorboard-data-server==0.7.2
+torch==2.10.0
+torchvision==0.25.0
+
+
+
