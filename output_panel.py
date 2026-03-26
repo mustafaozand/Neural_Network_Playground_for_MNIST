@@ -108,6 +108,7 @@ class OutputPanel(QFrame):
 
             QToolTip.hideText()
 
+    # this method will calculate the grayscale values for the output nodes
     def compute_grayscale_values(self):
         if not isinstance(self.predicted_values, torch.Tensor):
             return []
@@ -159,7 +160,7 @@ class OutputPanel(QFrame):
 
 
 
-# Demo Application
+# demo Application
 if __name__ == "__main__":
     from PyQt6.QtCore import QTimer
 
@@ -171,9 +172,9 @@ if __name__ == "__main__":
     panel = OutputPanel()
     panel.setMinimumSize(300, 600)
 
-    # Simple demo: update predictions every second so you can see the grayscale change.
+    # this method just randomly creates random values for each output node every second so that I can test the grayscale values.
     def update_random_predictions():
-        # Generate a random probability-like vector and normalise it so it sums to 1.
+        # generate a random probability vector and normalise it so it sums to 1.
         x = torch.rand(1, 10)
         x = x / x.sum(dim=1, keepdim=True)
         panel.set_predicted_values(x)
@@ -183,7 +184,6 @@ if __name__ == "__main__":
     timer.timeout.connect(update_random_predictions)
     timer.start(1000)
 
-    # Set initial values immediately
     update_random_predictions()
 
     window.setCentralWidget(panel)

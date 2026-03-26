@@ -64,13 +64,9 @@ class NetworkView(QFrame):
 
         snap = {
             "inputs": [torch.rand(num_nodes)],
-
             "biases": [torch.randn(num_nodes) for _ in range(num_layers)],
-
             "weights": [torch.randn(num_nodes, num_nodes) for _ in range(num_layers)],
-
             "outputs": [torch.randn(num_nodes) for _ in range(num_layers)],
-
             "activated_outputs": [torch.rand(num_nodes) for _ in range(num_layers)],
         }
         return snap
@@ -81,15 +77,23 @@ class NetworkView(QFrame):
         for key in self.displayed_values:
             self.partition_data(self.snapshot.get(key, []), key)
 
+        # this is the new validation I have added which will check if the displayed_values
+        # dictionary has been cleared after the user selects new hyperparameters.
+        if len(self.displayed_values["biases"]) == 0:
+            dummy_values = self.make_dummy_snapshot(layers=3, num_nodes=5)
+
+            # Loop through the displayed_values (which is a dictionary) and call
+            # partition_data on each key (e.g. weights, bias, activated values, etc.)
+            # Inside the partition_data method, dummy values for each key is created.
+            # This way when the user creates a new model with new hyperparameters,
+            # the application doesn't crash
+            for key in self.displayed_values:
+                self.partition_data(dummy_values[key], key)
         self.update()
 
-        #
-        # for tensor in arr:
-        #     partitioned = torch.cat((tensor[0][:3], tensor[0][-2:]), dim=0)
-        #     new_arr.append(partitioned)
-        #
-        # self.displayed_values[dict_id] = new_arr
 
+    # this method partitions my weight, bias or inputs so that only the data for the first 3 and the last 2 nodes
+    # in the network are used inside the neural network visualisation
     def partition_data(self, arr, dict_id:str):
         new_arr = []
 
@@ -116,6 +120,7 @@ class NetworkView(QFrame):
 
         self.displayed_values[dict_id] = new_arr
 
+    # this method creates the x and y positions of where each node will be placed
     def compute_display_layout(self):
         self.x_pos.clear()
         self.y_pos.clear()
@@ -200,6 +205,7 @@ class NetworkView(QFrame):
 
                     self.edge_hitboxes[(layer, n1, n2)] = (a, b)
 
+    # this method is used to calculate the shortest distance between my mouse cursor and an edge
     def calc_distance_between_cursor_and_edge(self, point: QPointF, a:QPointF, b:QPointF):
         ax, ay = a.x(), a.y()
         bx, by = b.x(), b.y()
@@ -229,6 +235,7 @@ class NetworkView(QFrame):
 
         return math.hypot(px - cx, py - cy)
 
+    # creates tooltip for nodes
     def node_tooltip(self, layer_i, neuron_i):
         nodes = [f"Layer {layer_i} Neuron {neuron_i}"]
 
@@ -263,6 +270,7 @@ class NetworkView(QFrame):
 
         return "\n".join(nodes)
 
+    # creates tooltip for the connections between nodes (edge) and it stores the weight values of each edge
     def edge_tooltip(self, layer_from, from_neuron, to_neuron):
 
         weight = self.displayed_values["weights"][layer_from][to_neuron][from_neuron]
@@ -273,6 +281,8 @@ class NetworkView(QFrame):
 
         return "\n".join(lines)
 
+    # this method calculates the distance between my mouse cursor and any node or edge
+    # so that whenever my cursor hovers over a node or an edge I can identify which node or edge it is.
     def hit_test(self, curr_pos: QPointF):
 
         for (layer_i , neuron_i), rect in self.node_hitboxes.items():
@@ -336,6 +346,8 @@ class NetworkView(QFrame):
 
         print(f"Hitboxes: {self.node_hitboxes}")
 
+
+    # this method calculates the grayscale values of the nodes inside each hidden layer
     def compute_grayscale_values(self):
         self.gray_scale_values.clear()
 
@@ -362,6 +374,7 @@ class NetworkView(QFrame):
 # if layer_a.dim() != 1:
 #     layer_a = layer_a.reshape(-1)
 
+# a demo app used to test the Network View panel
 class NetworkViewApp(QMainWindow):
     def __init__(self):
         super().__init__()

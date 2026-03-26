@@ -15,9 +15,9 @@ from model_performance_visualisation import Analytics
 import torch
 from device import DEVICE
 
-
+# the TrainingWorker class is used to run training inside a background thread so that my UI doesn't freeze during training
 class TrainingWorker(QObject):
-    snapshotReady = pyqtSignal(object) # will emit SNAPSHOT dict after each epoch
+    snapshotReady = pyqtSignal(object) # will emit the SNAPSHOT dictionary after each epoch
     finished = pyqtSignal()
 
     def __init__(self, trainer: Training):
@@ -38,6 +38,8 @@ class TrainingWorker(QObject):
     def stop(self):
         self.running = False
 
+# MainWindow is where objects from each panel are instantiated and also arranged correctly by following my design for
+# the Main Window which is in the Design section of my NEA
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -62,6 +64,7 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central)
 
+        # Stylesheet defines the style for each component of my UI
         self.setStyleSheet("""
 
         QMainWindow {
@@ -157,12 +160,12 @@ class MainWindow(QMainWindow):
         self.playground_page = QWidget()
         self.analytics_page = QWidget()
 
-        # I have decided in my evaluation to include an instructions page
-        self.instructions_page = InstructionPage()
+        # Information Page
+        self.information_page = InformationPage()
 
         self.main_page.addWidget(self.playground_page)
         self.main_page.addWidget(self.analytics_page)
-        self.main_page.addWidget(self.instructions_page)
+        self.main_page.addWidget(self.information_page)
 
         grid_layout = QGridLayout(self.playground_page)
         grid_layout.setContentsMargins(24, 24, 24, 24)
@@ -187,9 +190,11 @@ class MainWindow(QMainWindow):
         canvas_panel_controls.pen_size_changed.connect(self.canvas_panel.set_pen_size)
         canvas_panel_controls.eraser_toggled.connect(self.canvas_panel.set_eraser)
 
+        # the training class is instantiated here
         self.trainer = Training()
         self.trainer.set_snapshot()
 
+        # Each of my panels are instantiated here
         training_panel = TrainingPanel()
         network_view = NetworkView()
         hyper_panel = HyperParameterPanel()
@@ -209,11 +214,14 @@ class MainWindow(QMainWindow):
         self.analytics_layout.setContentsMargins(24,24,24,24)
         self.analytics_layout.addWidget(self.analytics)
 
+        #stores a list of older epochs from previous training cycles
         self.snapshot_history = []
         self.history_index = -1
 
         self.training_panel.previousRequested.connect(self.on_previous_requested)
 
+        # Before threading the UI and the backend was controlled by the train_timer,
+        # so when the timer was running because of training, the user couldn't interact with the UI
 
         # self.train_timer = QTimer(self)
         # self.train_timer.setInterval(0)
@@ -269,8 +277,7 @@ class MainWindow(QMainWindow):
         grid_layout.setRowStretch(0,1)
         grid_layout.setRowStretch(1,3)
 
-
-
+        # the object names are used to refer to each of these objects inside my stylesheet, for styling
         self.canvas_panel.setObjectName("canvas_panel")
         training_panel.setObjectName("training_panel")
         network_view.setObjectName("network_view")
@@ -279,6 +286,8 @@ class MainWindow(QMainWindow):
 
         self.sidebar.group.idClicked.connect(self.main_page.setCurrentIndex)
 
+    # this method detaches my tensors from autograd (training pipeline, it performs the forward, and backward operations. Before I was handling everything but now its handled by torch)
+    # then it moves the tensors to the CPU because they could be inside the GPU, and clones them, so that I can use these tensors safely in my code.
     def clone_tensor(self, t):
         if t is None:
             return None
@@ -307,7 +316,7 @@ class MainWindow(QMainWindow):
 
         x = self.canvas_panel.convert_img_to_tensor().to(DEVICE)  # shape (1,784) as 28x28= 784
 
-        # this is to show what the user drawn image will look like
+        # this is to show what the user drawn image will look like to the neural network after normalisation
         processed = self.canvas_panel.get_processed_img() # call the method inside the canvas class that will process the img
         user_img = QPixmap.fromImage(processed)
         user_img = user_img.scaled(280,280,Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
@@ -398,15 +407,16 @@ class MainWindow(QMainWindow):
             self.training_panel.play_pause_btn.setChecked(False)
             self.training_panel.play_pause_btn.blockSignals(False)
 
-        # Rebuild backend training objects using the new hyperparams
+        # rebuild the backend training objects using the new hyperparameters
         self.trainer.apply_hyperparams(config) #change to fit new architecture
 
-        # Clear history because old snapshots no longer match the new model/settings
+        # clear history because old snapshots no longer match the new model/settings
         self.snapshot_history.clear()
         self.history_index = -1
 
-        # Clear the view until the next epoch produces a new snapshot
+        # clear the view until the next epoch produces a new snapshot
         self.trainer.clear_snapshot() #change to fit new architecture
+
 
     def on_training_size_changed(self,size:int):
         # if the training thread is running than it is terminated
@@ -462,22 +472,25 @@ class Sidebar(QWidget):
         b.setCursor(Qt.CursorShape.PointingHandCursor)
         return b
 
-class InstructionPage(QWidget):
+
+#Information Page contains useful information about my application
+class InformationPage(QWidget):
     def __init__(self):
         super().__init__()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
 
-        title = QLabel("Application Instructions")
+        title = QLabel("Information Page")
         title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         layout.addWidget(title)
 
         text = QTextEdit()
         text.setReadOnly(True)
 
+        # Content inside the information page is written in HTML, because it is structured
         text.setHtml("""
-        <h1>Neural Playground – User Guide</h1>
+        <h1>Neural Playground</h1>
 
         <p>
         This application allows the user to experiment with a fully connected neural network trained on the MNIST dataset.

@@ -17,15 +17,6 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 from torchvision.transforms import ToTensor
 
-
-# @dataclass
-# class NetworkSnapshot:
-#     weights: list = List[torch.Tensor]
-#     biases: list = List[torch.Tensor]
-#     inputs: list = List[torch.Tensor] # in fact are the outputs attributes of the linear objects
-#     activated_outputs: list = List[torch.Tensor] # output attribute of the activation function's objects
-#     outputs: list = List[torch.Tensor]
-
 SNAPSHOT = {
     "weights": [],
     "biases": [],
@@ -34,6 +25,8 @@ SNAPSHOT = {
     "inputs": []
 }
 
+# I have decided to use the nn.Module from the pytorch library to create my neural network class which will be used to create models with hyperparameters selected by the user.
+# this class inherits from nn.Module
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
@@ -41,6 +34,8 @@ class NeuralNetwork(nn.Module):
         self.hyper_params = HyperParams()
 
         activation = self.hyper_params.activation
+
+        # uses the correct activation function to create an object of sequential which will represent the neural network architecture
 
         if activation == "ReLU":
             self.network = nn.Sequential(
@@ -70,7 +65,7 @@ class NeuralNetwork(nn.Module):
             )
 
 
-        # set the optimiser, learning rater and batch size from hyper_params
+        # set the optimiser, learning rate and batch size from hyper_params
         # as class attributes
         self.optimiser = self.hyper_params.optimiser
         self.lr = self.hyper_params.lr
@@ -173,7 +168,8 @@ class Training:
 
         # activation= self.hyper_params.activation
 
-
+        # This code belongs to my previous prototype which made use of the neural network coded from scratch using pytorch tensors only to store weights and biases
+        # This new prototype uses the pytorch libraries neural network algorithms.
 
         # model_features = [
         #     ("linear", 784, 128),
@@ -208,13 +204,12 @@ class Training:
 
     def apply_hyperparams(self, config: HyperParams):
         # apply new hyperparameters from the UI.
-        # rebuilds optimiser / network and recreates dataloaders when required.
-        # call this only when training is paused.
+        # rebuild optimiser / network and recreate dataloaders when required.
 
-        # dataclass that contains lr, batch_size, etc.
+        # dataclass that contains lr, batch_size, etc. its inside of network_view
         self.hyper_params = config
 
-        # Update batch size + recreate loaders if needed
+        # update batch size and recreate the mnist dataset loaders if needed
         new_batch = int(getattr(config, "batch_size", self.batch_size))
         if new_batch != self.batch_size:
             self.batch_size = new_batch
@@ -232,7 +227,7 @@ class Training:
                 shuffle=False
             )
 
-        # Rebuild network if activation changed
+        # rebuild the network if activation function is changed
 
         self.model = NeuralNetwork().to(DEVICE)
         self.loss_fn = nn.CrossEntropyLoss()
@@ -247,6 +242,8 @@ class Training:
             self.optimiser = torch.optim.Adam(params=self.model.parameters(), lr=1e-3, weight_decay=1e-4 )
 
 
+        # These lines were used to create the neural network model using my own neural network code, but now pytorch is used as it is more optimised
+        # the code for my neural network can be found inside the file named nn_from_scratch
         # activation = getattr(config, "activation", self.hyper_params.activation)
         # model_features = [
         #     ("linear", 784, 128),
@@ -273,8 +270,6 @@ class Training:
         # self.model = Model(sequential=self.network, optimiser=self.optimiser, lr=self.learning_rate)
 
 
-
-        # Clear any stale snapshot state
         self.clear_snapshot()
         self.curr_training_batch = None
 
@@ -297,34 +292,41 @@ class Training:
                 SNAPSHOT["weights"].append(layer.weight.detach().cpu())
                 SNAPSHOT["biases"].append(layer.bias.detach().cpu())
 
-        # SNAPSHOT["outputs"] = [t.detach().cpu() for t in getattr(self.model, "last_linear_outputs", [])]
-        # SNAPSHOT["activated_outputs"] = [t.detach().cpu() for t in getattr(self.model, "last_activation_outputs", [])]
-        # Outputs / activations captured from the most recent forward pass
-        linear_outs = [t.detach().cpu() for t in getattr(self.model, "last_linear_outputs", [])]
-        act_outs = [t.detach().cpu() for t in getattr(self.model, "last_activation_outputs", [])]
+        # Linear and activation outputs from the most recent forward pass
+        # Each tensor is detached from the computation graph (used by pytorch to keep track of all operations performed on tensors) and moved to the CPU
+        # so it can be stored in the snapshot and used by the UI without affecting training
+        linear_outputs = []
+        for linear_output in getattr(self.model, "last_linear_outputs", []):
+            linear_outputs.append(linear_output.detach().cpu())
 
-        # The UI typically treats each weight matrix as a "layer" transition.
-        # So we ensure outputs has one entry per Linear layer.
+        activated_outputs = []
+        for activated_output in getattr(self.model, "last_activation_outputs", []):
+            activated_outputs.append(activated_output.detach().cpu())
+
+        # the UI typically treats each weight matrix as a "layer".
+        # so ensure that outputs has one entry per Linear layer.
         n_linear = len(SNAPSHOT["weights"])
 
-        # Pad / trim linear outputs to exactly n_linear
-        if len(linear_outs) < n_linear:
-            linear_outs = linear_outs + [None] * (n_linear - len(linear_outs))
-        else:
-            linear_outs = linear_outs[:n_linear]
+        # Initially the linear_outs doesn't contain the correct number of linear layers so only the
+        # input layer is displayed, these lines will just add dummy linear layers to the linear_outs before they are displayed
+
+        # At the start, when the user hasn't run any epochs the linear_outputs will be empty [] thus length will be 0
+        missing_outputs = (n_linear - len(linear_outputs))
+        if len(linear_outputs) < n_linear:
+            linear_outputs = linear_outputs + [None] * missing_outputs
+        # else:
+        #     linear_outputs = linear_outputs[:n_linear]
 
         # Activations exist after each hidden Linear (not after final logits),
         # but the UI indexes activated_outputs with (layer_i - 1), which can hit the output layer too.
         # So we pad to n_linear as well, leaving the final activation as None.
-        if len(act_outs) < n_linear:
-            act_outs = act_outs + [None] * (n_linear - len(act_outs))
-        else:
-            act_outs = act_outs[:n_linear]
+        if len(activated_outputs) < n_linear:
+            activated_outputs = activated_outputs + [None] * missing_outputs
+        # else:
+        #     activated_outputs = activated_outputs[:n_linear]
 
-        SNAPSHOT["outputs"] = linear_outs
-        SNAPSHOT["activated_outputs"] = act_outs
-
-
+        SNAPSHOT["outputs"] = linear_outputs
+        SNAPSHOT["activated_outputs"] = activated_outputs
 
 
     def clear_snapshot(self):
@@ -394,8 +396,6 @@ class Training:
         # self.epochTrained.emit()
 
         return (avg_loss, acc)
-
-
 
 
     # # Testing

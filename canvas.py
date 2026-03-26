@@ -30,8 +30,8 @@ class CanvasPanel(QFrame):
     def set_pen_size(self, size: int):
         self.brush_size = int(size)
 
-    def set_eraser(self, on:bool):
-        self.brush_color = Qt.GlobalColor.white if on else Qt.GlobalColor.black
+    def set_eraser(self, is_enabled:bool):
+        self.brush_color = Qt.GlobalColor.white if is_enabled else Qt.GlobalColor.black
 
     def mousePressEvent(self,event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -119,7 +119,7 @@ class CanvasPanel(QFrame):
         return q.copy()
 
 
-
+# this class is for the controls for the canvas like setting eraser or using the slider to change eraser or pen size
 class CanvasControlPanel(QWidget):
     clear_requested = pyqtSignal()
     pen_size_changed = pyqtSignal(int)
@@ -150,15 +150,16 @@ class CanvasControlPanel(QWidget):
         row.addWidget(self.slider_lbl_val)
 
         self.clear_btn.clicked.connect(self.clear_requested.emit)
-        self.slider.valueChanged.connect(self.on_slider)
+        self.slider.valueChanged.connect(self.on_slider_value_changed)
         self.eraser_btn.toggled.connect(self.eraser_toggled.emit)
 
-    def on_slider(self, value):
+    def on_slider_value_changed(self, value):
         self.slider_lbl_val.setText(str(value))
         self.pen_size_changed.emit(value)
 
 
 
+# Demo application to test that the Canvas panel works
 class CanvasApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -188,7 +189,6 @@ class CanvasApp(QMainWindow):
 
 
         self.setCentralWidget(central)
-
 
 def main():
     app = QApplication(sys.argv)

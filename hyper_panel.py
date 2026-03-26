@@ -32,20 +32,24 @@ class HyperParameterPanel(QFrame):
 
         title.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
 
+        # learning rate slider
         self.lr_slider = QSlider(Qt.Orientation.Horizontal)
         self.lr_slider.setMinimum(10)
         self.lr_slider.setMaximum(60)
         self.lr_slider.setValue(0)
         self.lr_value = QLabel("")
 
+        #batch size spinbox
         self.batch_size = QSpinBox()
         self.batch_size.setMinimum(1)
         self.batch_size.setMaximum(64)
         self.batch_size.setValue(self.config.batch_size)
 
+        #the activation function combobox
         self.activation_func = QComboBox()
         self.activation_func.addItems(["ReLU", "Sigmoid","Tanh"])
 
+        #the optimisers combobox
         self.optimiser = QComboBox()
         self.optimiser.addItems(["SGD","Adam"])
 
@@ -80,7 +84,7 @@ class HyperParameterPanel(QFrame):
         self.activation_func.currentTextChanged.connect(self.on_any_value_changed)
         self.optimiser.currentTextChanged.connect(self.on_any_value_changed)
 
-
+    # sliders in pyqt only accept integers this function converts the integer value of the slider into float
     def convert_lr_slider_int_to_corresponding_float(self,s):
         return 10 ** (-6 + (s/10.0))
 
@@ -90,22 +94,27 @@ class HyperParameterPanel(QFrame):
         lr = self.convert_lr_slider_int_to_corresponding_float(self.lr_slider.value())
         self.lr_value.setText(f"{lr: .5f}")
 
+    # whenever the user changes a value inside the hyperparameter panel this method gets called
     def update_config_from_ui(self):
         self.config.lr = self.convert_lr_slider_int_to_corresponding_float(self.lr_slider.value())
         self.config.batch_size = int(self.batch_size.value())
         self.config.activation = self.activation_func.currentText()
         self.config.optimiser = self.optimiser.currentText()
 
+    # when the learning rate is changed this method is called
     def on_lr_changed(self, value:int):
         self.update_ui()
         self.update_config_from_ui()
         self.configChanged.emit(self.config)
 
-    def on_any_value_changed(self, *_args):
+    # this method is called to change the hyperparameter values (config) and update UI components
+    # for this only the label that shows the user the learning rate is updated because the other components are handled by pyqt
+    def on_any_value_changed(self):
         self.update_ui()
         self.update_config_from_ui()
         self.configChanged.emit(self.config)
 
+    # getter method for config
     def get_config(self):
         self.update_config_from_ui()
         return self.config

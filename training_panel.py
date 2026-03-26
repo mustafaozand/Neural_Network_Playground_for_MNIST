@@ -33,17 +33,22 @@ class TrainingPanel(QFrame):
         title.setAlignment(Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
+        # predict button will allow users to classify their own inputs
         self.predict_btn = QPushButton("Predict")
 
+        # currently only the mnist dataset is available
         self.dataset_selector = QComboBox()
         self.dataset_selector.addItems(["MNIST"])
 
+        # play / pause button will be checkable so that it will be highlighted when training is happening
         self.play_pause_btn = QPushButton("Play/Pause")
         self.play_pause_btn.setCheckable(True)
 
+        # previous button
         self.previous_btn = QPushButton("Previous")
         self.next_btn = QPushButton("Next")
 
+        # the slider that allows users to adjust the training dataset size
         self.size_of_training_data_slider = QSlider(Qt.Orientation.Horizontal)
         self.size_of_training_data_slider.setMinimum(100)
         self.size_of_training_data_slider.setMaximum(60_000)
@@ -54,8 +59,7 @@ class TrainingPanel(QFrame):
         self.size_of_training_data_slider_title = QLabel("Size of Training Data")
         self.size_of_training_data_slider_label = QLabel("60000")
 
-        # Add functionality
-
+        # each button or slider is connected to a method inside of my class
         self.predict_btn.clicked.connect(self.predict)
         self.dataset_selector.currentTextChanged.connect(self.select_data)
         self.play_pause_btn.toggled.connect(self.set_play_pause)
@@ -79,7 +83,7 @@ class TrainingPanel(QFrame):
         # dataSet
         grid_layout.addWidget(self.dataset_selector, 0, 1)
 
-        # Training Control Buttons
+        # training control buttons
         training_control_buttons_layout = QHBoxLayout()
 
         training_control_buttons_layout.addWidget(self.previous_btn,0)
