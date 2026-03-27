@@ -336,6 +336,7 @@ class MainWindow(QMainWindow):
             pred_class = int(logits.argmax(dim=1).item())
 
         self.output_panel.set_predicted_values(softmax_values)
+        self.output_panel.update()
 
         print(f"Logits:{logits}")
         print(f"Softmax Values: {softmax_values}")
@@ -454,7 +455,7 @@ class Sidebar(QWidget):
 
         self.btn_play = self.nav_btn("Playground")
         self.btn_analytics = self.nav_btn("Analytics")
-        self.btn_instructions = self.nav_btn("Instructions")
+        self.btn_instructions = self.nav_btn("Information")
         # self.btn_data = self.nav_btn("Dataset")
         # self.btn_learn = self.nav_btn("Learn")
 
