@@ -29,4 +29,4 @@ Important note
 Do not run the Jupyter notebook like this:
 python nn_from_scratch.ipynb
 
-That notebook is for development and testing, so it should be opened in Jupyter or inside PyCharm.
+That notebook is for development and testing, so it should be opened in Jupyter.
